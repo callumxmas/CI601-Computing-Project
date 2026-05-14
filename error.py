@@ -1,18 +1,18 @@
 from pathlib import Path
 
-class FileReadError(Exception):#file cannot be read
+class FileReadError(Exception): #file cannot be read error
     pass
 
-class FileWriteError(Exception):#file cannot be written
+class FileWriteError(Exception): #file cannot be written error
     pass
 
 class DeleteFileError(Exception): #file cannot be deleted error
     pass
 
-class AuthError(Exception):#login authentication fail
+class AuthError(Exception) : #login authentication error
     pass
 
-class CryptoError(Exception):#encryption or decryption fail
+class CryptoError(Exception): #encryption/encryption error
     pass
 
 def safeRead(path): #file reading function (error protected)
@@ -24,7 +24,6 @@ def safeRead(path): #file reading function (error protected)
         raise FileReadError(f"Permission denied: {path}") #raise permission error
     except Exception as e:
         raise FileReadError(f"Error reading file {path}: {e}") #raise exception error
-
 
 def safeWrite(path, data): #file writing function (error protected)
     try:
