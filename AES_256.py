@@ -1,6 +1,6 @@
 from error import *
 import secrets
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.ciphers.aead import (AESGCM)
 
 key = bytes.fromhex('7a231e74a1771acbdb2161b550901242204a2fdab78a87801081d26f49dd0651') #hard coded encryption key for developing
 #key = secrets.token_bytes(32) #generating encryption key
@@ -17,20 +17,11 @@ def encrypt(message): #encryption function
 
 def decrypt(data): #decryption function
     try:
-        nonce = data[:12]       #nonce makes up first 12 bytes of data
-        ciphertext = data[12:]  #remainding data is cipher text
+        nonce = data[:12] #nonce makes up first 12 bytes of data
+        ciphertext = data[12:] #remainding data is cipher text
         aes = AESGCM(key) #encrpytion key
         plaintext = aes.decrypt(nonce, ciphertext, None) #decrypts cipher text into pain text using key and nonce
         return plaintext.decode() #returns plain text
     except Exception as e:
         raise CryptoError(f"Decryption failed: {e}") #catch errors decrypting
-
-if __name__ == '__main__': #simple encryption/decryption example
-    print("Key:", key.hex()) #key input
-
-    ciphertext = encrypt(input("Enter message: ")) #plain text input and encryption
-    print("Ciphertext:", ciphertext.hex()) #cipher text print
-
-    plaintext = decrypt(ciphertext) #cipher text decryption
-    print("Decrypted:", plaintext) #plain text output
 
