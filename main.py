@@ -1,4 +1,5 @@
 import file_utilities
+from error import *
 from login import loginWindow
 from pathlib import Path
 import tkinter as tk
@@ -143,6 +144,18 @@ def openMenuWin(username): #opens main menu window function
             print(dataToSave)
             file_utilities.writeFile(f"./{username}/{currentFileName}",dataToSave) #saves to file
 
+    def checkFileName(filename):  #function to check if a file name exists
+        files = [p.stem for p in loadFiles()]  #loads user's files
+
+        if filename == "":  #if inputted file name is nothing
+            error = "Enter File Name"  #sets error
+            return True, error  #returns True and error
+        elif filename in files:  #if inputted file name is found in users existing files
+            error = "File Already Exists"  #sets error
+            return True, error  #returns True and error
+        else:
+            return False  #else returns false (no file name match is found and it is acceptable)
+
     def deletePopUp():  #delete file pop up window
         nonlocal currentFileName
         if currentFileName is None:  #checks a file is currently open
@@ -158,15 +171,26 @@ def openMenuWin(username): #opens main menu window function
         popUpTitleLabel = tk.Label(PopUp, text=f"Confirm deleting {currentFileName}?", font=titleFont,fg="white")  #delete message
         popUpTitleLabel.place(relx=0.5, rely=0.20, anchor="center")  #places lable
 
-        popUpLable = tk.Label(PopUp, text="Once a file is deleted, it is moved to the bin.", font=labelFont,fg="grey")  #delete sub message
+        popUpLable = tk.Label(PopUp, text="Once a file is deleted, it is unrecoverable.", font=labelFont,fg="grey")  #delete sub message
         popUpLable.place(relx=0.5, rely=0.50, anchor="center")  #places lable
 
         cancelButton = tk.Button(PopUp, text="Cancel",
                                  command=lambda: PopUp.destroy())  #sets cancel button to close window
         cancelButton.place(relx=0.35, rely=0.80, anchor="center")  #places button
 
-        deleteButton = tk.Button(PopUp, text="Delete")  #sets delete button to delete function
+        deleteButton = tk.Button(PopUp, text="Delete", command=lambda: deleteFile())  #sets delete button to delete function
         deleteButton.place(relx=0.65, rely=0.80, anchor="center")  #places button
+
+        def deleteFile():  # delete function (move to bin function)
+            nonlocal currentFileName
+            closeFile()  # closes current file
+            file_utilities.deleteFile(f"./{username}/{currentFileName}")  #deletes file
+
+            currentFileName = None  # resets current file variable
+
+            PopUp.destroy()  #close pop up
+            root.destroy()  #close main window
+            openMenuWin(username)  #reopen window
 
     def renamePopUp(): #rename file pop up window
         nonlocal currentFileLable, currentFileName
@@ -187,7 +211,7 @@ def openMenuWin(username): #opens main menu window function
         fileNameInput.place(relx=0.5, rely=0.40, anchor="center")  #place input box
         fileNameInput.insert(0, currentFileName[:-4])  #put current file name in input box (without extension)
 
-        renameButton = tk.Button(PopUp, text="Rename")  #set rename button to rename function
+        renameButton = tk.Button(PopUp, text="Rename", command=lambda: attemptFileRename())  #set rename button to rename function
         renameButton.place(relx=0.65, rely=0.80, anchor="center")  #place rename button
 
         cancelButton = tk.Button(PopUp, text="Cancel", command=lambda: PopUp.destroy())  #set cancel button to close window
@@ -195,6 +219,26 @@ def openMenuWin(username): #opens main menu window function
 
         errorLabel = tk.Label(PopUp, text="", font=labelFont, fg="red")  #sets error lable
         errorLabel.place(relx=0.5, rely=0.60, anchor="center")  #places lable
+
+        def attemptFileRename():  #attemp rename function
+            nonlocal currentFileName
+            fileRename = f"{fileNameInput.get()}.txt"  #fetches inputted filename (adds extension)
+            check = checkFileName(fileRename[:-4])  #checks if filename is already taken
+
+            if not check:  #if filename is not taken
+                saveFile()  #save file
+
+                currentFilePath = f"./{username}/{currentFileName}"  #set old path
+                newFilePath = f"./{username}/{fileRename}"  #set new path
+
+                file_utilities.renameFile(currentFilePath, newFilePath)  #attemp to rename file
+
+                PopUp.destroy()  #close pop up
+                root.destroy() #close main window
+                openMenuWin(username) #reopen window
+            else:  #if match is found
+                fileNameInput.delete("0", "end")  #clears inputted name
+                errorLabel.config(text=check[1])  #displays check error
 
     def newFilePopUp(): #new file pop up window
         PopUp = tk.Toplevel(root) #creates window
@@ -209,7 +253,7 @@ def openMenuWin(username): #opens main menu window function
         fileNameInput = tk.Entry(PopUp,width=25, bg="#2b2b2b", fg="white") #sets filename input box
         fileNameInput.place(relx=0.5, rely=0.40, anchor="center") #places input box
 
-        createButton = tk.Button(PopUp, text="Create") #sets create button to new file function
+        createButton = tk.Button(PopUp, text="Create", command=lambda: attemptNewFile()) #sets create button to new file function
         createButton.place(relx=0.65, rely=0.80, anchor="center") #places button
 
         cancelButton = tk.Button(PopUp, text="Cancel", command=lambda: PopUp.destroy()) #sets cancel button to close window
@@ -218,6 +262,33 @@ def openMenuWin(username): #opens main menu window function
         errorLabel = tk.Label(PopUp, text="", font=labelFont, fg="red") #sets error lable
         errorLabel.place(relx=0.5, rely=0.60, anchor="center") #places error lable
 
+        def attemptNewFile(): #create new file function
+            nonlocal currentFileName
+
+            inputName = fileNameInput.get() #fetch inputted file name
+            check = checkFileName(inputName) #checks inputted file name
+
+            if not check: #if no match found
+                try:
+                    saveFile() #save current file
+                    file_utilities.createFile(username, inputName) #attempt to create file
+                    currentFileName = None #reset current file
+
+                    fileTitle.config(text="") #clear file title
+                    fileEditor.delete("1.0", "end") #clear text editor
+                    fileEditor.place_forget() #remove text editor
+
+                    PopUp.destroy() #close pop up
+                    root.destroy() #close main window
+                    openMenuWin(username) #reopen window
+                except FileWriteError: #if creation fail
+                    fileNameInput.delete("0", "end") #clear input box
+                    errorLabel.config(text="Creation Failed, Try Again")  #display error
+            else:  #if file name already taken
+                fileNameInput.delete("0", "end") #clear input box
+                errorLabel.config(text=check[1]) #displays check error
+
     root.mainloop() #set main menu (root) as main loop
 
-loginWindow(openMenuWin) #calls login function to start the program
+#loginWindow(openMenuWin) #calls login function to start the program
+openMenuWin("username")
