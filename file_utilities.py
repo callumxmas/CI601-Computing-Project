@@ -1,9 +1,9 @@
 import AES_256
 from error import *
 
-def loadFile(username,filename): #load file function
+def loadFile(username,filename,key): #load file function
     try:
-        hexdata = safeRead(f"./{username}/{filename}") #attempt to read stored hexadecimal data from inputted file
+        hexdata = safeRead(f"./users/{username}/{filename}") #attempt to read stored hexadecimal data from inputted file
 
         if not hexdata: #if file hexdata is empty
             raise FileReadError("File is empty") #raise file empty error
@@ -14,27 +14,25 @@ def loadFile(username,filename): #load file function
             raise FileReadError("File corrupt") #raise file corrupt error if fail
 
         try:
-            plaintext = AES_256.decrypt(data) #attempt to decrypt byte data to plain text
+            plaintext = AES_256.decrypt(data,key) #attempt to decrypt byte data to plain text
         except CryptoError as e:
             raise CryptoError(f"Decryption Error: {e}") #raise decryption error if fail
 
-        print("Decrypted:", plaintext)
         return  plaintext #return decrypted plain text
 
     except (FileReadError, CryptoError):
         raise #raise error is load fails
 
-def writeFile(path, data): #write to file function
+def writeFile(path, data, key): #write to file function
     try:
-        ciphertext = AES_256.encrypt(data).hex() #encrypts inputted data
-        print(f"Encrypted: {ciphertext} to {path}")
-        safeWrite(path, ciphertext) #writes to file
+        ciphertext = AES_256.encrypt(data, key).hex() #attempt to encrypt inputted data using inputted key
+        safeWrite(path, ciphertext) #write ciphertext to file
     except (FileWriteError, CryptoError) as e:
-        raise FileWriteError(f"File Write Error: {e}")  # displays error if fail
+        raise FileWriteError(f"File Write Error: {e}") #displays error if fail
 
-def createFile(username, filename): #create file function
+def createFile(username, filename,key): #create file function
     try:
-        safeWrite(f"./{username}/{filename}.txt", AES_256.encrypt("").hex()) #attempt to write to new file
+        safeWrite(f"./users/{username}/{filename}.txt", AES_256.encrypt("",key).hex()) #attempt to write to new file
     except FileWriteError as e:
         raise FileWriteError(f"File Create Error: {e}") #displays error if fail
 
